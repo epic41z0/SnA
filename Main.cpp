@@ -84,6 +84,51 @@ public:
     }
 };
 
+template <typename T, size_t SIZE>
+class Queue {
+    T elements[SIZE];
+    size_t front, rear, itemCount;
+
+public:
+    Queue() : front(0), rear(-1), itemCount(0) {}
+
+    bool isFull() const {
+        return itemCount == SIZE;
+    }
+
+    bool isEmpty() const {
+        return itemCount == 0;
+    }
+
+    bool push(const T &item) {
+        if (isFull()) {
+            std::cerr << "Queue overflow! Cannot push item.\n";
+            return false;
+        }
+
+        rear = (rear + 1) % SIZE;
+        elements[rear] = item;
+        itemCount++;
+        return true;
+    }
+
+    T pop() {
+        if (isEmpty()) {
+            std::cerr << "Queue underflow! Queue is empty.\n";
+            return T();
+        }
+
+        T frontElement = elements[front];
+        front = (front + 1) % SIZE;
+        itemCount--;
+        return frontElement;
+    }
+
+    size_t size() const {
+        return itemCount;
+    }
+};
+
 std::string padAccountNumber(const std::string &accountNumber) {
     std::string padded = accountNumber;
     while (padded.length() < 10) {
@@ -97,6 +142,7 @@ int main() {
     Bank bank(&storage);
 
     const int AntalAccounts = 1000000;
+    const int QueueSize = 1000; // Antagande storlek för kön (Queue)
 
     std::vector<int> accountNumbers;
     for (int i = 0; i < AntalAccounts; ++i) {
@@ -107,14 +153,20 @@ int main() {
 
     std::shuffle(accountNumbers.begin(), accountNumbers.end(), g);
 
+    Queue<std::string, QueueSize> accountQueue; // Skapar en kö för kontonummer av typen std::string
+
     auto startTime = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < AntalAccounts; i++) {
         std::string accountNumber = std::to_string(accountNumbers[i]);
         accountNumber = padAccountNumber(accountNumber);
-        bank.addAccount(accountNumber);
+        bool success = accountQueue.push(accountNumber);
+        if (!success) {
+            std::cerr << "Failed to add account to the queue.\n";
+            break;
+        }
     }
     auto endTime = std::chrono::high_resolution_clock::now();
-    std::cout << "Adding accounts took: "
+    std::cout << "Adding accounts to queue took: "
               << std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count()
               << " nanoseconds" << std::endl;
 
